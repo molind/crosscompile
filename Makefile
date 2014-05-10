@@ -1,6 +1,3 @@
-
-LIBRARY = libmapnik.a
-
 XCODE_DEVELOPER = $(shell xcode-select --print-path)
 IOS_PLATFORM ?= iPhoneOS
 
