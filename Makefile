@@ -1,8 +1,8 @@
-XCODE_DEVELOPER = $(shell xcode-select --print-path)
+XCODE_TOOLCHAIN = $(shell xcode-select --print-path)/Toolchains/XcodeDefault.xctoolchain
 IOS_PLATFORM ?= iphoneos
 
 # Pick latest SDK in the directory
-IOS_PLATFORM_DEVELOPER = $(shell xcrun -sdk ${IOS_PLATFORM} -show-sdk-platform-path)
+#IOS_PLATFORM_DEVELOPER = $(shell xcrun -sdk ${IOS_PLATFORM} -show-sdk-platform-path)
 IOS_SDK = $(shell xcrun -sdk ${IOS_PLATFORM} -show-sdk-path)
 
 all: build_arches
@@ -11,7 +11,7 @@ all: build_arches
 	# Make fat libraries for all architectures
 	for file in build/armv7/lib/*.a; \
 		do name=`basename $$file .a`; \
-		${IOS_PLATFORM_DEVELOPER}/usr/bin/lipo -create \
+		${XCODE_DEVELOPER}/usr/bin/lipo -create \
 			-arch armv7 build/armv7/lib/$$name.a \
 			-arch armv7s build/armv7s/lib/$$name.a \
 			-arch arm64 build/arm64/lib/$$name.a \
@@ -34,8 +34,8 @@ PREFIX = ${CURDIR}/build/${ARCH}
 LIBDIR = ${PREFIX}/lib
 INCLUDEDIR = ${PREFIX}/include
 
-CXX = ${XCODE_DEVELOPER}/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++
-CC = ${XCODE_DEVELOPER}/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang
+CXX = ${XCODE_TOOLCHAIN}/usr/bin/clang++
+CC = ${XCODE_TOOLCHAIN}/usr/bin/clang
 CFLAGS = -isysroot ${IOS_SDK} -I${IOS_SDK}/usr/include -arch ${ARCH} -miphoneos-version-min=5.0
 CXXFLAGS = -stdlib=libc++ -isysroot ${IOS_SDK} -I${IOS_SDK}/usr/include -arch ${ARCH}  -miphoneos-version-min=5.0
 LDFLAGS = -stdlib=libc++ -isysroot ${IOS_SDK} -L${LIBDIR} -L${IOS_SDK}/usr/lib -arch ${ARCH} -miphoneos-version-min=5.0
