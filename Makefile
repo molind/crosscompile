@@ -1,9 +1,9 @@
 XCODE_DEVELOPER = $(shell xcode-select --print-path)
-IOS_PLATFORM ?= iPhoneOS
+IOS_PLATFORM ?= iphoneos
 
 # Pick latest SDK in the directory
-IOS_PLATFORM_DEVELOPER = ${XCODE_DEVELOPER}/Platforms/${IOS_PLATFORM}.platform/Developer
-IOS_SDK = ${IOS_PLATFORM_DEVELOPER}/SDKs/$(shell ls ${IOS_PLATFORM_DEVELOPER}/SDKs | sort -r | head -n1)
+IOS_PLATFORM_DEVELOPER = $(shell xcrun -sdk ${IOS_PLATFORM} -show-sdk-platform-path}
+IOS_SDK = ${shell xcrun -sdk ${IOS_PLATFORM} -show-sdk-path}
 
 all: build_arches
 	mkdir -p lib
@@ -24,11 +24,11 @@ all: build_arches
 
 # Build separate architectures
 build_arches:
-	${MAKE} arch ARCH=armv7 IOS_PLATFORM=iPhoneOS
-	${MAKE} arch ARCH=armv7s IOS_PLATFORM=iPhoneOS
-	${MAKE} arch ARCH=arm64 IOS_PLATFORM=iPhoneOS
-	${MAKE} arch ARCH=i386 IOS_PLATFORM=iPhoneSimulator
-	${MAKE} arch ARCH=x86_64 IOS_PLATFORM=iPhoneSimulator
+	${MAKE} arch ARCH=armv7 IOS_PLATFORM=iphoneos
+	${MAKE} arch ARCH=armv7s IOS_PLATFORM=iphoneos
+	${MAKE} arch ARCH=arm64 IOS_PLATFORM=iphoneos
+	${MAKE} arch ARCH=i386 IOS_PLATFORM=iphonesimulator
+	${MAKE} arch ARCH=x86_64 IOS_PLATFORM=iphonesimulator
 
 PREFIX = ${CURDIR}/build/${ARCH}
 LIBDIR = ${PREFIX}/lib
