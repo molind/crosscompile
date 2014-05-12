@@ -2,8 +2,8 @@ XCODE_DEVELOPER = $(shell xcode-select --print-path)
 IOS_PLATFORM ?= iphoneos
 
 # Pick latest SDK in the directory
-IOS_PLATFORM_DEVELOPER = $(shell xcrun -sdk ${IOS_PLATFORM} -show-sdk-platform-path}
-IOS_SDK = ${shell xcrun -sdk ${IOS_PLATFORM} -show-sdk-path}
+IOS_PLATFORM_DEVELOPER = $(shell xcrun -sdk ${IOS_PLATFORM} -show-sdk-platform-path)
+IOS_SDK = $(shell xcrun -sdk ${IOS_PLATFORM} -show-sdk-path)
 
 all: build_arches
 	mkdir -p lib
