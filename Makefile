@@ -11,7 +11,7 @@ all: build_arches
 	# Make fat libraries for all architectures
 	for file in build/armv7/lib/*.a; \
 		do name=`basename $$file .a`; \
-		${XCODE_DEVELOPER}/usr/bin/lipo -create \
+		${XCODE_TOOLCHAIN}/usr/bin/lipo -create \
 			-arch armv7 build/armv7/lib/$$name.a \
 			-arch armv7s build/armv7s/lib/$$name.a \
 			-arch arm64 build/arm64/lib/$$name.a \
