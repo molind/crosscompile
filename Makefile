@@ -38,7 +38,7 @@ CXX = ${XCODE_TOOLCHAIN}/usr/bin/clang++
 CC = ${XCODE_TOOLCHAIN}/usr/bin/clang
 CFLAGS = -isysroot ${IOS_SDK} -I${IOS_SDK}/usr/include -arch ${ARCH} -miphoneos-version-min=5.0
 CXXFLAGS = -stdlib=libc++ -isysroot ${IOS_SDK} -I${IOS_SDK}/usr/include -arch ${ARCH}  -miphoneos-version-min=5.0
-LDFLAGS = -stdlib=libc++ -isysroot ${IOS_SDK} -L${LIBDIR} -L${IOS_SDK}/usr/lib -arch ${ARCH} -miphoneos-version-min=5.0
+LDFLAGS = -e _main -stdlib=libc++ -isysroot ${IOS_SDK} -L${LIBDIR} -L${IOS_SDK}/usr/lib -arch ${ARCH} -miphoneos-version-min=5.0
 LIBTOOLFLAGS = -arch_only ${ARCH}
 
 arch: ${LIBDIR}/libsqlite3.a ${LIBDIR}/libprotobuf.a
