@@ -1,0 +1,49 @@
+diff -rupN ../boost_1_67_0/Makefile ./Makefile
+--- ../boost_1_67_0/Makefile	1970-01-01 03:00:00.000000000 +0300
++++ ./Makefile	2018-05-22 17:00:12.000000000 +0300
+@@ -0,0 +1,45 @@
++# source files.
++SRC = libs/date_time/src/gregorian/date_generators.cpp \
++	libs/date_time/src/gregorian/greg_month.cpp \
++	libs/date_time/src/gregorian/greg_weekday.cpp \
++	libs/filesystem/src/codecvt_error_category.cpp \
++	libs/filesystem/src/operations.cpp \
++	libs/filesystem/src/path.cpp \
++	libs/filesystem/src/path_traits.cpp \
++	libs/filesystem/src/portability.cpp \
++	libs/filesystem/src/unique_path.cpp \
++	libs/filesystem/src/utf8_codecvt_facet.cpp \
++	libs/filesystem/src/windows_file_codecvt.cpp \
++	libs/iostreams/src/file_descriptor.cpp \
++	libs/iostreams/src/mapped_file.cpp \
++	libs/iostreams/src/gzip.cpp \
++	libs/iostreams/src/zlib.cpp \
++	libs/program_options/src/cmdline.cpp \
++	libs/program_options/src/convert.cpp \
++	libs/program_options/src/parsers.cpp \
++	libs/program_options/src/split.cpp \
++	libs/program_options/src/value_semantic.cpp \
++	libs/program_options/src/winmain.cpp \
++	libs/program_options/src/config_file.cpp \
++	libs/program_options/src/options_description.cpp \
++	libs/program_options/src/positional_options.cpp \
++	libs/program_options/src/utf8_codecvt_facet.cpp \
++	libs/program_options/src/variables_map.cpp \
++	libs/system/src/error_code.cpp
++OBJ = $(SRC:.cpp=.o)
++LIB = libboost.a
++FLAGS = -I.
++
++.cpp.o:
++	$(CXX) $(CPPFLAGS) $(CXXFLAGS) ${FLAGS} -c -o $@ $<
++
++$(LIB): $(OBJ)
++	$(AR) cr $(LIB) $(OBJ)
++
++clean:
++	rm -f $(OBJ) $(LIB)
++
++install: $(LIB)
++	mkdir -p $(PREFIX)/lib $(PREFIX)/include
++	cp $(LIB) $(PREFIX)/lib
++	ln -sf `pwd`/boost $(PREFIX)/include/boost

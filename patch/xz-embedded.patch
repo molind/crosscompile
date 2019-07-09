@@ -1,0 +1,281 @@
+diff -rupN xz-embedded/Makefile xz-embedded_patched/Makefile
+--- xz-embedded/Makefile	1970-01-01 03:00:00.000000000 +0300
++++ xz-embedded_patched/Makefile	2015-03-26 12:17:05.000000000 +0300
+@@ -0,0 +1,19 @@
++# source files.
++LIBSRC =  linux/lib/xz/xz_crc32.c linux/lib/xz/xz_crc64.c linux/lib/xz/xz_dec_bcj.c linux/lib/xz/xz_dec_lzma2.c linux/lib/xz/xz_dec_stream.c
++OBJ = $(LIBSRC:.c=.o)
++XZLIB = libxz.a
++
++.c.o:
++	$(CC) $(CFLAGS) -O0 $(CPPFLAGS) -I./userspace -I./linux/include/linux -c -o $@ $<
++
++$(XZLIB): $(OBJ)
++	$(AR) cr $(XZLIB) $(OBJ)
++
++clean:
++	rm -f $(OBJ) $(XZLIB)
++
++install: $(XZLIB)
++	mkdir -p $(PREFIX)/lib $(PREFIX)/include
++	cp $(XZLIB) $(PREFIX)/lib
++	cp userspace/xz_config.h $(PREFIX)/include
++	cp linux/include/linux/xz.h $(PREFIX)/include
+diff -rupN xz-embedded/linux/include/linux/xz.h xz-embedded_patched/linux/include/linux/xz.h
+--- xz-embedded/linux/include/linux/xz.h	2013-05-13 16:55:59.000000000 +0300
++++ xz-embedded_patched/linux/include/linux/xz.h	2015-03-26 11:33:08.000000000 +0300
+@@ -17,6 +17,7 @@
+ #else
+ #	include <stddef.h>
+ #	include <stdint.h>
++#   include <stdio.h>
+ #endif
+ 
+ #ifdef __cplusplus
+@@ -196,6 +197,9 @@ struct xz_dec;
+  * xz_dec_init() returns NULL.
+  */
+ XZ_EXTERN struct xz_dec *xz_dec_init(enum xz_mode mode, uint32_t dict_max);
++    
++XZ_EXTERN void xz_dec_dump(struct xz_dec *s, FILE *f);
++XZ_EXTERN struct xz_dec *xz_dec_restore(FILE *f);
+ 
+ /**
+  * xz_dec_run() - Run the XZ decoder
+diff -rupN xz-embedded/linux/lib/xz/xz_dec_bcj.c xz-embedded_patched/linux/lib/xz/xz_dec_bcj.c
+--- xz-embedded/linux/lib/xz/xz_dec_bcj.c	2013-05-13 16:55:59.000000000 +0300
++++ xz-embedded_patched/linux/lib/xz/xz_dec_bcj.c	2015-03-26 11:33:08.000000000 +0300
+@@ -533,6 +533,11 @@ XZ_EXTERN struct xz_dec_bcj *xz_dec_bcj_
+ 	return s;
+ }
+ 
++XZ_EXTERN void xz_dec_bcj_dump(struct xz_dec_bcj *s, FILE *f)
++{
++}
++
++
+ XZ_EXTERN enum xz_ret xz_dec_bcj_reset(struct xz_dec_bcj *s, uint8_t id)
+ {
+ 	switch (id) {
+diff -rupN xz-embedded/linux/lib/xz/xz_dec_lzma2.c xz-embedded_patched/linux/lib/xz/xz_dec_lzma2.c
+--- xz-embedded/linux/lib/xz/xz_dec_lzma2.c	2013-05-13 16:55:59.000000000 +0300
++++ xz-embedded_patched/linux/lib/xz/xz_dec_lzma2.c	2019-04-01 10:46:28.000000000 +0300
+@@ -312,6 +312,14 @@ static inline bool dict_has_space(const 
+ }
+ 
+ /*
++ * Checks if distance is a valid. If the distance is invalid, false is returned.
++ */
++static inline bool dict_is_valid_dist(const struct dictionary *dict, uint32_t dist)
++{
++    return dist < dict->full && dist < dict->size;
++}
++
++/*
+  * Get a byte from the dictionary at the given distance. The distance is
+  * assumed to valid, or as a special case, zero when the dictionary is
+  * still empty. This special case is needed for single-call decoding to
+@@ -348,7 +356,7 @@ static bool dict_repeat(struct dictionar
+ 	size_t back;
+ 	uint32_t left;
+ 
+-	if (dist >= dict->full || dist >= dict->size)
++	if (!dict_is_valid_dist(dict, dist))
+ 		return false;
+ 
+ 	left = min_t(size_t, dict->limit - dict->pos, *len);
+@@ -378,7 +386,7 @@ static void dict_uncompressed(struct dic
+ 
+ 	while (*left > 0 && b->in_pos < b->in_size
+ 			&& b->out_pos < b->out_size) {
+-		copy_size = min(b->in_size - b->in_pos,
++		copy_size = xz_min(b->in_size - b->in_pos,
+ 				b->out_size - b->out_pos);
+ 		if (copy_size > dict->end - dict->pos)
+ 			copy_size = dict->end - dict->pos;
+@@ -578,7 +586,7 @@ static uint16_t *lzma_literal_probs(stru
+ }
+ 
+ /* Decode a literal (one 8-bit byte) */
+-static void lzma_literal(struct xz_dec_lzma2 *s)
++static bool lzma_literal(struct xz_dec_lzma2 *s)
+ {
+ 	uint16_t *probs;
+ 	uint32_t symbol;
+@@ -593,6 +601,9 @@ static void lzma_literal(struct xz_dec_l
+ 		symbol = rc_bittree(&s->rc, probs, 0x100);
+ 	} else {
+ 		symbol = 1;
++        if(!dict_is_valid_dist(&s->dict, s->lzma.rep0))
++            return false;
++
+ 		match_byte = dict_get(&s->dict, s->lzma.rep0) << 1;
+ 		offset = 0x100;
+ 
+@@ -613,6 +624,7 @@ static void lzma_literal(struct xz_dec_l
+ 
+ 	dict_put(&s->dict, (uint8_t)symbol);
+ 	lzma_state_literal(&s->lzma.state);
++    return true;
+ }
+ 
+ /* Decode the length of the match into s->lzma.len. */
+@@ -739,7 +751,8 @@ static bool lzma_main(struct xz_dec_lzma
+ 
+ 		if (!rc_bit(&s->rc, &s->lzma.is_match[
+ 				s->lzma.state][pos_state])) {
+-			lzma_literal(s);
++			if(!lzma_literal(s))
++                return false;
+ 		} else {
+ 			if (rc_bit(&s->rc, &s->lzma.is_rep[s->lzma.state]))
+ 				lzma_rep_match(s, pos_state);
+@@ -1125,6 +1138,57 @@ XZ_EXTERN struct xz_dec_lzma2 *xz_dec_lz
+ 	return s;
+ }
+ 
++XZ_EXTERN void xz_dec_lzma2_dump(struct xz_dec_lzma2 *s, FILE *f)
++{
++    fwrite(s, sizeof(*s), 1, f);
++	if (DEC_IS_PREALLOC(s->dict.mode)) {
++        fwrite(s->dict.buf, 1, s->dict.size_max, f);
++	} else if (DEC_IS_DYNALLOC(s->dict.mode)) {
++        fwrite(s->dict.buf, 1, s->dict.allocated, f);
++	}
++}
++
++XZ_EXTERN struct xz_dec_lzma2 *xz_dec_lzma2_restore(FILE *f)
++{
++	struct xz_dec_lzma2 *s = kmalloc(sizeof(*s), GFP_KERNEL);
++	if (s == NULL)
++		return NULL;
++    
++    if( fread(s, sizeof(*s), 1, f) != 1 ){
++        kfree(s);
++        return NULL;
++    }
++    
++	if (DEC_IS_PREALLOC(s->dict.mode)) {
++		s->dict.buf = vmalloc(s->dict.size_max);
++		if (s->dict.buf == NULL) {
++			kfree(s);
++			return NULL;
++		}
++        
++        if( fread(s->dict.buf, 1, s->dict.size_max, f)!=s->dict.size_max){
++            kfree(s);
++            return NULL;
++        }
++	} else if (DEC_IS_DYNALLOC(s->dict.mode)) {
++		s->dict.buf = vmalloc(s->dict.allocated);
++		if (s->dict.buf == NULL) {
++			kfree(s);
++			return NULL;
++		}
++
++        if( fread(s->dict.buf, 1, s->dict.allocated, f)!=s->dict.allocated){
++            kfree(s);
++            return NULL;
++        }
++    } else {
++        kfree(s);
++        return NULL;
++    }
++    return s;
++}
++
++
+ XZ_EXTERN enum xz_ret xz_dec_lzma2_reset(struct xz_dec_lzma2 *s, uint8_t props)
+ {
+ 	/* This limits dictionary size to 3 GiB to keep parsing simpler. */
+diff -rupN xz-embedded/linux/lib/xz/xz_dec_stream.c xz-embedded_patched/linux/lib/xz/xz_dec_stream.c
+--- xz-embedded/linux/lib/xz/xz_dec_stream.c	2013-05-13 16:55:59.000000000 +0300
++++ xz-embedded_patched/linux/lib/xz/xz_dec_stream.c	2015-03-26 11:33:08.000000000 +0300
+@@ -823,6 +823,31 @@ error_bcj:
+ 	return NULL;
+ }
+ 
++XZ_EXTERN void xz_dec_dump(struct xz_dec *s, FILE *f)
++{
++    fwrite(s, sizeof(*s), 1, f);
++    xz_dec_lzma2_dump(s->lzma2, f);
++}
++
++XZ_EXTERN struct xz_dec *xz_dec_restore(FILE *f)
++{
++	struct xz_dec *s = kmalloc(sizeof(*s), GFP_KERNEL);
++	if (s == NULL)
++		return NULL;
++    if(fread(s, sizeof(*s), 1, f) != 1)
++        goto error_lzma2;
++        
++    s->lzma2 = xz_dec_lzma2_restore(f);
++    if(s->lzma2 == NULL)
++        goto error_lzma2;
++    
++    return s;
++error_lzma2:
++	kfree(s);
++	return NULL;
++}
++
++
+ XZ_EXTERN void xz_dec_reset(struct xz_dec *s)
+ {
+ 	s->sequence = SEQ_STREAM_HEADER;
+diff -rupN xz-embedded/linux/lib/xz/xz_private.h xz-embedded_patched/linux/lib/xz/xz_private.h
+--- xz-embedded/linux/lib/xz/xz_private.h	2013-05-13 16:55:59.000000000 +0300
++++ xz-embedded_patched/linux/lib/xz/xz_private.h	2015-03-26 11:33:08.000000000 +0300
+@@ -109,6 +109,9 @@
+ XZ_EXTERN struct xz_dec_lzma2 *xz_dec_lzma2_create(enum xz_mode mode,
+ 						   uint32_t dict_max);
+ 
++XZ_EXTERN void xz_dec_lzma2_dump(struct xz_dec_lzma2 *s, FILE *f);
++XZ_EXTERN struct xz_dec_lzma2 *xz_dec_lzma2_restore(FILE *f);
++
+ /*
+  * Decode the LZMA2 properties (one byte) and reset the decoder. Return
+  * XZ_OK on success, XZ_MEMLIMIT_ERROR if the preallocated dictionary is not
+@@ -132,6 +135,8 @@ XZ_EXTERN void xz_dec_lzma2_end(struct x
+  */
+ XZ_EXTERN struct xz_dec_bcj *xz_dec_bcj_create(bool single_call);
+ 
++XZ_EXTERN void xz_dec_bcj_dump(struct xz_dec_bcj *s, FILE *f);
++
+ /*
+  * Decode the Filter ID of a BCJ filter. This implementation doesn't
+  * support custom start offsets, so no decoding of Filter Properties
+diff -rupN xz-embedded/userspace/xz_config.h xz-embedded_patched/userspace/xz_config.h
+--- xz-embedded/userspace/xz_config.h	2013-05-13 16:55:59.000000000 +0300
++++ xz-embedded_patched/userspace/xz_config.h	2015-03-26 11:33:08.000000000 +0300
+@@ -11,7 +11,7 @@
+ #define XZ_CONFIG_H
+ 
+ /* Uncomment to enable CRC64 support. */
+-/* #define XZ_USE_CRC64 */
++#define XZ_USE_CRC64
+ 
+ /* Uncomment as needed to enable BCJ filter decoders. */
+ /* #define XZ_DEC_X86 */
+@@ -47,10 +47,10 @@ typedef unsigned char bool;
+ #define memeq(a, b, size) (memcmp(a, b, size) == 0)
+ #define memzero(buf, size) memset(buf, 0, size)
+ 
+-#ifndef min
+-#	define min(x, y) ((x) < (y) ? (x) : (y))
++#ifndef xz_min
++#	define xz_min(x, y) ((x) < (y) ? (x) : (y))
+ #endif
+-#define min_t(type, x, y) min(x, y)
++#define min_t(type, x, y) xz_min(x, y)
+ 
+ /*
+  * Some functions have been marked with __always_inline to keep the
+@@ -118,6 +118,7 @@ static inline void put_unaligned_be32(ui
+  * could save a few bytes in code size.
+  */
+ #ifndef get_le32
++//#   define get_le32(ptr) (*(const uint32_t *)(ptr))
+ #	define get_le32 get_unaligned_le32
+ #endif
+ 

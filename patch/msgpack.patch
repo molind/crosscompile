@@ -1,0 +1,21 @@
+--- msgpack-2.1.5/Makefile	2017-08-18 14:09:00.000000000 +0300
++++ msgpack/Makefile	2017-08-18 13:49:32.000000000 +0300
+@@ -0,0 +1,18 @@
++# source files.
++LIBSRC =  src/objectc.c src/unpack.c src/version.c src/vrefbuffer.c src/zone.c
++OBJ = $(LIBSRC:.c=.o)
++LIB = libmsgpackc.a
++
++.c.o:
++	$(CC) $(CFLAGS) $(CPPFLAGS) -I./include -c -o $@ $<
++
++$(LIB): $(OBJ)
++	$(AR) cr $(LIB) $(OBJ)
++
++clean:
++	rm -f $(OBJ) $(LIB)
++
++install: $(LIB)
++	mkdir -p $(PREFIX)/lib $(PREFIX)/include
++	cp $(LIB) $(PREFIX)/lib
++	cp -R include/* $(PREFIX)/include

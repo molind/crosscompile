@@ -1,0 +1,16 @@
+diff -rupN ../libressl-orig/m4/check-os-options.m4 ./m4/check-os-options.m4
+--- ../libressl-orig/m4/check-os-options.m4	2018-03-24 17:29:25.000000000 +0300
++++ ./m4/check-os-options.m4	2018-05-23 10:48:09.000000000 +0300
+@@ -76,6 +76,12 @@ char buf[1]; getentropy(buf, 1);
+ 		CPPFLAGS="$CPPFLAGS -D_XOPEN_SOURCE=600 -D__STRICT_ALIGNMENT"
+ 		AC_SUBST([PLATFORM_LDADD], ['-lpthread'])
+ 		;;
++	*android*)
++		HOST_OS=linux
++		HOST_ABI=elf
++		CPPFLAGS="$CPPFLAGS -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_SOURCE -D_GNU_SOURCE"
++		AC_SUBST([PLATFORM_LDADD], [])
++		;;
+ 	*linux*)
+ 		HOST_OS=linux
+ 		HOST_ABI=elf
