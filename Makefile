@@ -11,14 +11,14 @@ ios: prebuild
 android: prebuild
 	@${MAKE} -f Android.mk
 
-# android_toolchain: 
+# android_toolchain:
 # 	@${MAKE} -f AndroidToolchain.mk
 
 download:
 	mkdir -p download
 
 # install prerequisites
-prebuild: download download/icu
+prebuild: download
 #	brew install wget autoconf automake cmake libtool pkgconfig protobuf bjam
 
 clean:

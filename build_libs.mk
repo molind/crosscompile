@@ -1,15 +1,40 @@
-# using our makefiles
-${LIBDIR}/libmsgpackc.a: download/msgpack
+${LIBDIR}/libosmium.a: download/osmium ${LIBDIR}/libexpat.a ${LIBDIR}/libboost.a ${LIBDIR}/libproj.a ${LIBDIR}/libprotozero
 	@printf $(call NICE_PRINT,$@) 1>&2;
-	cd ${MSGPACK_DIR} && \
+
+	cd ${OSMIUM_DIR} && \
+	rm -rf build && mkdir build && cd build \
+	&& cmake .. && \
+	${MAKE} -j install
+
+${LIBDIR}/libexpat.a: download/expat
+	@printf $(call NICE_PRINT,$@) 1>&2;
+	cd ${EXPAT_DIR} && \
+	./configure --host=${HOST} --prefix=${PREFIX} --disable-shared && \
 	${MAKE} clean && \
 	${MAKE} -j8 install
 
-${LIBDIR}/libxz.a: download/xz
+${LIBDIR}/libprotozero: download/protozero
 	@printf $(call NICE_PRINT,$@) 1>&2;
-	cd ${XZ_DIR} && \
-	${MAKE} clean && \
-	${MAKE} -j8 install
+	cd ${PROTOZERO_DIR} && \
+	rm -rf ${PREFIX}/include/protozero && \
+	cp -r include/protozero ${PREFIX}/include/ && \
+	touch ${LIBDIR}/libprotozero
+
+${LIBDIR}/libproj.a: download/proj ${LIBDIR}/libtiff.a ${LIBDIR}/libcurl.a
+	@printf $(call NICE_PRINT,$@) 1>&2;
+	cd ${PROJ_DIR} && \
+	rm -rf build && mkdir build && cd build \
+	&& cmake .. ${CMAKE_FLAGS} -DBUILD_TESTING=OFF -DBUILD_APPS=OFF \
+		-DCURL_INCLUDE_DIR=${PREFIX}/include -DCURL_LIBRARY=${LIBDIR}/libcurl.a \
+		-DTIFF_INCLUDE_DIR=${PREFIX}/include -DTIFF_LIBRARY=${LIBDIR}/libtiff.a && \
+	${MAKE} -j install
+
+${LIBDIR}/libtiff.a: download/tiff
+	@printf $(call NICE_PRINT,$@) 1>&2;
+	cd ${TIFF_DIR} && \
+	rm -rf _build && mkdir _build && cd _build \
+	&& cmake .. ${CMAKE_FLAGS} -DBUILD_SHARED_LIBS=OFF && \
+	${MAKE} -j install
 
 ${LIBDIR}/libboost.a: download/boost
 	@printf $(call NICE_PRINT,$@) 1>&2;
@@ -17,51 +42,10 @@ ${LIBDIR}/libboost.a: download/boost
 	${MAKE} clean && \
 	${MAKE} -j8 install
 
-# using configure
-${LIBDIR}/libprotobuf-lite.a: download/protobuf
-	@printf $(call NICE_PRINT,$@) 1>&2;
-	cd ${PROTOBUF_DIR} && \
-	env LDFLAGS="${LDFLAGS} ${LDFLAGS_PROTOBUF}" ./configure --host=${HOST} --prefix=${PREFIX} --disable-shared --with-protoc=/usr/local/bin/protoc && \
-	${MAKE} clean && \
-	${MAKE} -j8 install
-
-${LIBDIR}/libsqlite3.a: download/sqlite3
-	@printf $(call NICE_PRINT,$@) 1>&2;
-	cd ${SQLITE3_DIR} && \
-	env CXXFLAGS="${CXXFLAGS} -DSQLITE_ENABLE_RTREE -DSQLITE_ENABLE_FTS4" \
-	./configure --host=${HOST} --prefix=${PREFIX} --disable-shared && \
-	${MAKE} clean && \
-	${MAKE} -j8 install-libLTLIBRARIES install-includeHEADERS # we build only lib because there is no `system(int)` func on iOS
-
-${LIBDIR}/libfreetype.a : download/freetype
-	@printf $(call NICE_PRINT,$@) 1>&2;
-	cd ${FREETYPE_DIR} && \
-	env PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig" \
-	./configure --host=${HOST} --prefix=${PREFIX} --disable-shared --without-png --without-harfbuzz && \
-	${MAKE} clean && \
-	${MAKE} -j8 install
-
-${LIBDIR}/libicuuc.a: download/icu | ${ICU_HOST_DIR}/source/bin/icupkg
-	@printf $(call NICE_PRINT,$@) 1>&2;
-	@cd ${ICU_DIR}/source && \
-	env CXXFLAGS="${CXXFLAGS} -DUCONFIG_NO_IDNA=1 -DUCONFIG_NO_FORMATTING=1 -DUCONFIG_NO_TRANSLITERATION=1 -DUCONFIG_NO_REGULAR_EXPRESSIONS=1 -I${CURDIR}/${ICU_DIR}/tools/tzcode -DUCHAR_TYPE=uint16_t" \
-	./configure --host=${HOST} --prefix=${PREFIX} --with-cross-build=${CURDIR}/${ICU_HOST_DIR}/source --disable-shared --enable-static --with-data-packaging=archive --disable-extras --disable-icuio --disable-layout --disable-tools --disable-tests -disable-samples && \
-	${MAKE} clean && \
-	${MAKE} -j8 install
-
-${LIBDIR}/libharfbuzz.a: download/harfbuzz ${LIBDIR}/libicuuc.a ${LIBDIR}/libfreetype.a
-	@printf $(call NICE_PRINT,$@) 1>&2;
-	cd ${HARFBUZZ_DIR} && \
-	env PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig" \
-	./configure --host=${HOST} --prefix=${PREFIX} --disable-shared --with-freetype=yes --with-glib=no --with-icu=yes && \
-	${MAKE} clean && \
-	${MAKE} -j8 install
-
 ## Only libs with different settings below
-${LIBDIR}/libcares.a: download/c-ares
+${LIBDIR}/libcurl.a: download/curl
 	@printf $(call NICE_PRINT,$@) 1>&2;
-	cd ${C-ARES_DIR} && \
-	./configure --host=${HOST} --prefix=${PREFIX} && \
+	cd ${CURL_DIR} && \
+	./configure --host=${HOST} --prefix=${PREFIX} --disable-shared --enable-ipv6 --with-darwinssl --enable-threaded-resolver && \
 	${MAKE} clean && \
-	${MAKE} -j8 install
-	
+	${MAKE} -j install

@@ -1,143 +1,40 @@
+OSMIUM_VER = 2.18.0
 CURL_VER = 7.65.1
-HARFBUZZ_VER = 2.5.1
-ICU_VER = 64.2
-ICU_VER_UNDERSCORE = $(subst .,_,${ICU_VER})
-ICU_VER_SHORT = $(basename $(ICU_VER))
-MSGPACK_VER = 3.2.0
-XZ_VER = 20130513
-PROTOBUF_VER = 3.6.1
-SQLITE3_VER = 3280000
-LIBRESSL_VER = 2.9.2
-FREETYPE_VER = 2.10.0
+PROTOZERO_VER = 1.7.1
+BZIP2_VER = 1.0.8
+PROJ_VER = 9.0.1
+TIFF_VER = 4.4.0
 BOOST_VER = 1.70.0
 BOOST_VER_UNDERSCORE = $(subst .,_,${BOOST_VER})
-C-ARES_VER = 1.15.0
+EXPAT_VER = 2.4.8
+EXPAT_VER_UNDERSCORE = $(subst .,_,${EXPAT_VER})
 
+OSMIUM_DIR = download/osmium-${OSMIUM_VER}
 CURL_DIR = download/curl-${CURL_VER}
-HARFBUZZ_DIR = download/harfbuzz-${HARFBUZZ_VER}
-ICU_DIR = download/icu-${ICU_VER}
-ICU_HOST_DIR = download/icu_host-${ICU_VER}
-MSGPACK_DIR = download/msgpack-${MSGPACK_VER}
-XZ_DIR = download/xz-${XZ_VER}
-PROTOBUF_DIR = download/protobuf-${PROTOBUF_VER}
-SQLITE3_DIR = download/sqlite3-${SQLITE3_VER}
-LIBRESSL_DIR = download/libressl-${LIBRESSL_VER}
-FREETYPE_DIR = download/freetype-${FREETYPE_VER}
 BOOST_DIR = download/boost-${BOOST_VER}
-C-ARES_DIR = download/c-ares-${C-ARES_VER}
-
-LIB_DIRS = \
-	${CURL_DIR} \
-	${HARFBUZZ_DIR} \
-	${ICU_DIR} \
-	${MSGPACK_DIR} \
-	${XZ_DIR} \
-	${PROTOBUF_DIR} \
-	${SQLITE3_DIR} \
-	${LIBRESSL_DIR} \
-	${BOOST_DIR} \
-	${C-ARES_DIR}
-
-# Download libraries. see http://stackoverflow.com/a/4251368/241482
-# download: | ${LIB_DIRS}
+EXPAT_DIR = download/expat-${EXPAT_VER}
+PROTOZERO_DIR = download/protozero-${PROTOZERO_VER}
+BZIP2_DIR = download/bzip2-${BZIP2_VER}
+PROJ_DIR = download/proj-${PROJ_VER}
+TIFF_DIR = download/tiff-${TIFF_VER}
 
 # Downloading libs
-${SQLITE3_DIR}:
-	rm -f download/sqlite3
 
-	wget https://www.sqlite.org/2019/sqlite-autoconf-${SQLITE3_VER}.tar.gz
-	tar xzvf sqlite-autoconf-${SQLITE3_VER}.tar.gz
-	rm sqlite-autoconf-${SQLITE3_VER}.tar.gz
-	mv sqlite-autoconf-${SQLITE3_VER} ${SQLITE3_DIR}
-	
-download/sqlite3: | ${SQLITE3_DIR}
-	echo ${SQLITE3_VER} > download/sqlite3
+${OSMIUM_DIR}:
+	rm -f download/osmium
 
-${PROTOBUF_DIR}:
-	rm -f download/protobuf
+	wget https://github.com/osmcode/libosmium/archive/refs/tags/v${OSMIUM_VER}.tar.gz
+	tar xzvf v${OSMIUM_VER}.tar.gz
+	rm v${OSMIUM_VER}.tar.gz
+	mv libosmium-${OSMIUM_VER} ${OSMIUM_DIR}
 
-	wget https://github.com/google/protobuf/releases/download/v${PROTOBUF_VER}/protobuf-cpp-${PROTOBUF_VER}.tar.gz
-	tar xzvf protobuf-cpp-${PROTOBUF_VER}.tar.gz
-	rm protobuf-cpp-${PROTOBUF_VER}.tar.gz
-	mv protobuf-${PROTOBUF_VER} ${PROTOBUF_DIR}
-	cd ${PROTOBUF_DIR} && ./autogen.sh
-
-download/protobuf: | ${PROTOBUF_DIR}	
-	echo ${PROTOBUF_VER} > download/protobuf
-
-${BOOST_DIR}:
-	rm -f download/boost
-
-	wget https://dl.bintray.com/boostorg/release/${BOOST_VER}/source/boost_${BOOST_VER_UNDERSCORE}.tar.bz2
-	tar xzvf boost_${BOOST_VER_UNDERSCORE}.tar.bz2
-	rm boost_${BOOST_VER_UNDERSCORE}.tar.bz2
-	mv boost_${BOOST_VER_UNDERSCORE} ${BOOST_DIR}
-
-	# patch it
-	cd ${BOOST_DIR} && patch -p0 < ../../patch/boost.patch
-
-download/boost: | ${BOOST_DIR}	
-	echo ${BOOST_VER} > download/boost
-
-${XZ_DIR}:
-	rm -f download/xz
-
-	wget http://tukaani.org/xz/xz-embedded-${XZ_VER}.tar.gz
-	tar xzvf xz-embedded-${XZ_VER}.tar.gz
-	rm xz-embedded-${XZ_VER}.tar.gz
-	
-	# pre-patch move
-	mv xz-embedded-${XZ_VER} xz-embedded
-	patch -p0 < patch/xz-embedded.patch
-	# post-patch move
-	mv xz-embedded ${XZ_DIR}
-
-download/xz: | ${XZ_DIR}
-	echo ${XZ_VER} > download/xz
-
-${MSGPACK_DIR}:
-	rm -f download/msgpack
-
-	wget https://github.com/msgpack/msgpack-c/releases/download/cpp-${MSGPACK_VER}/msgpack-${MSGPACK_VER}.tar.gz
-	tar xzvf msgpack-${MSGPACK_VER}.tar.gz
-	rm msgpack-${MSGPACK_VER}.tar.gz
-
-	# pre-patch move
-	mv msgpack-${MSGPACK_VER} msgpack
-	patch -p0 < patch/msgpack.patch
-	# post-patch move
-	mv msgpack ${MSGPACK_DIR}
-
-download/msgpack: | ${MSGPACK_DIR}
-	echo ${MSGPACK_VER} > download/msgpack
-
-${ICU_DIR}:
-	rm -f download/icu
-
-	wget http://download.icu-project.org/files/icu4c/${ICU_VER}/icu4c-${ICU_VER_UNDERSCORE}-src.tgz
-	tar xzvf icu4c-${ICU_VER_UNDERSCORE}-src.tgz
-	rm icu4c-${ICU_VER_UNDERSCORE}-src.tgz
-	mv icu ${ICU_DIR}
-	chmod a+x ${ICU_DIR}/source/configure
-
-${ICU_HOST_DIR}/source/bin/icupkg: ${ICU_DIR}
-	cp -R ${ICU_DIR} ${ICU_HOST_DIR}
-	cd ${ICU_HOST_DIR}/source && \
-	./configure --enable-static && \
-	${MAKE} clean && \
-	${MAKE} -j8 all
-
-${CURDIR}/icudt${ICU_VER_SHORT}l.dat: ${ICU_HOST_DIR}/source/bin/icupkg
-	cd ${CURDIR}/${ICU_HOST_DIR}/source/data/out/build/icudt${ICU_VER_SHORT}l && \
-	env DYLD_LIBRARY_PATH="${CURDIR}/${ICU_HOST_DIR}/source/lib" ${CURDIR}/${ICU_HOST_DIR}/source/bin/pkgdata --rebuild --mode common --name icudt${ICU_VER_SHORT}l --destdir "${CURDIR}" ${CURDIR}/icudata.lst
-
-download/icu: | ${ICU_DIR} ${ICU_HOST_DIR}/source/bin/icupkg ${CURDIR}/icudt${ICU_VER_SHORT}l.dat
-	echo ${ICU_VER} > download/icu
+download/osmium: | ${OSMIUM_DIR}
+	echo ${OSMIUM_VER} > download/osmium
 
 ${CURL_DIR}:
 	rm -f download/curl
 
-	wget http://curl.haxx.se/download/curl-${CURL_VER}.tar.gz
+	wget https://curl.haxx.se/download/curl-${CURL_VER}.tar.gz
 	tar xzvf curl-${CURL_VER}.tar.gz
 	rm curl-${CURL_VER}.tar.gz
 	mv curl-${CURL_VER} ${CURL_DIR}
@@ -145,47 +42,82 @@ ${CURL_DIR}:
 download/curl: | ${CURL_DIR}
 	echo ${CURL_VER} > download/curl
 
-${C-ARES_DIR}:
-	rm -f download/c-ares
+${EXPAT_DIR}:
+	rm -f download/expat
 
-	wget https://c-ares.haxx.se/download/c-ares-${C-ARES_VER}.tar.gz
-	tar xzvf c-ares-${C-ARES_VER}.tar.gz
-	rm c-ares-${C-ARES_VER}.tar.gz
-	mv c-ares-${C-ARES_VER} ${C-ARES_DIR}
+	wget https://github.com/libexpat/libexpat/releases/download/R_${EXPAT_VER_UNDERSCORE}/expat-${EXPAT_VER}.tar.gz
+	tar xzvf expat-${EXPAT_VER}.tar.gz
+	rm expat-${EXPAT_VER}.tar.gz
+	mv expat-${EXPAT_VER} ${EXPAT_DIR}
 
-download/c-ares: | ${C-ARES_DIR}
-	echo ${C-ARES_VER} > download/c-ares
+download/expat: | ${EXPAT_DIR}
+	echo ${EXPAT_VER} > download/expat
 
-${HARFBUZZ_DIR}:
-	rm -f download/harfbuzz
+${PROTOZERO_DIR}:
+	rm -f download/protozero
 
-	wget https://github.com/harfbuzz/harfbuzz/releases/download/${HARFBUZZ_VER}/harfbuzz-${HARFBUZZ_VER}.tar.xz
-	tar xzvf harfbuzz-${HARFBUZZ_VER}.tar.xz
-	rm harfbuzz-${HARFBUZZ_VER}.tar.xz
-	mv harfbuzz-${HARFBUZZ_VER} ${HARFBUZZ_DIR}
+	wget https://github.com/mapbox/protozero/archive/refs/tags/v${PROTOZERO_VER}.tar.gz
+	tar xzvf v${PROTOZERO_VER}.tar.gz
+	rm v${PROTOZERO_VER}.tar.gz
+	mv protozero-${PROTOZERO_VER} ${PROTOZERO_DIR}
 
-download/harfbuzz: | ${HARFBUZZ_DIR}
-	echo ${HARFBUZZ_VER} > download/harfbuzz
+download/protozero: | ${PROTOZERO_DIR}
+	echo ${PROTOZERO_VER} > download/protozero
 
-${LIBRESSL_DIR}:
-	rm -f download/libressl
+${PROTOZERO_DIR}:
+	rm -f download/protozero
 
-	wget https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-${LIBRESSL_VER}.tar.gz
-	tar xzvf libressl-${LIBRESSL_VER}.tar.gz
-	rm libressl-${LIBRESSL_VER}.tar.gz
-	mv libressl-${LIBRESSL_VER} ${LIBRESSL_DIR}
-	cd ${LIBRESSL_DIR} && patch -p0 < ../../patch/libressl.patch && aclocal && automake && autoconf
+	wget https://github.com/mapbox/protozero/archive/refs/tags/v${PROTOZERO_VER}.tar.gz
+	tar xzvf v${PROTOZERO_VER}.tar.gz
+	rm v${PROTOZERO_VER}.tar.gz
+	mv protozero-${PROTOZERO_VER} ${PROTOZERO_DIR}
 
-download/libressl: | ${LIBRESSL_DIR}
-	echo ${LIBRESSL_VER} > download/libressl
+download/protozero: | ${PROTOZERO_DIR}
+	echo ${PROTOZERO_VER} > download/protozero
 
-${FREETYPE_DIR}:
-	rm -f download/freetype
+${BZIP2_DIR}:
+	rm -f download/protozero
 
-	wget https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VER}.tar.gz
-	tar xzvf freetype-${FREETYPE_VER}.tar.gz
-	rm freetype-${FREETYPE_VER}.tar.gz
-	mv freetype-${FREETYPE_VER} ${FREETYPE_DIR}
+	wget https://sourceware.org/pub/bzip2/bzip2-${BZIP2_VER}.tar.gz
+	tar xzvf bzip2-${BZIP2_VER}.tar.gz
+	rm bzip2-${BZIP2_VER}.tar.gz
+	mv bzip2-${BZIP2_VER} ${BZIP2_DIR}
 
-download/freetype: | ${FREETYPE_DIR}
-	echo ${FREETYPE_VER} > download/freetype
+download/bzip2: | ${BZIP2_DIR}
+	echo ${BZIP2_VER} > download/bzip2
+
+${PROJ_DIR}:
+	rm -f download/proj
+
+	wget https://download.osgeo.org/proj/proj-${PROJ_VER}.tar.gz
+	tar xzvf proj-${PROJ_VER}.tar.gz
+	rm proj-${PROJ_VER}.tar.gz
+	mv proj-${PROJ_VER} ${PROJ_DIR}
+
+download/proj: | ${PROJ_DIR}
+	echo ${PROJ_VER} > download/proj
+
+${TIFF_DIR}:
+	rm -f download/tiff
+
+	wget https://download.osgeo.org/libtiff/tiff-${TIFF_VER}.tar.gz
+	tar xzvf tiff-${TIFF_VER}.tar.gz
+	rm tiff-${TIFF_VER}.tar.gz
+	mv tiff-${TIFF_VER} ${TIFF_DIR}
+
+download/tiff: | ${TIFF_DIR}
+	echo ${TIFF_VER} > download/tiff
+
+${BOOST_DIR}:
+	rm -f download/boost
+
+	wget https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VER}/source/boost_${BOOST_VER_UNDERSCORE}.tar.bz2
+	tar xzvf boost_${BOOST_VER_UNDERSCORE}.tar.bz2
+	rm boost_${BOOST_VER_UNDERSCORE}.tar.bz2
+	mv boost_${BOOST_VER_UNDERSCORE} ${BOOST_DIR}
+
+	# patch it
+	cd ${BOOST_DIR} && patch -p0 < ../../patch/boost.patch
+
+download/boost: | ${BOOST_DIR}
+	echo ${BOOST_VER} > download/boost

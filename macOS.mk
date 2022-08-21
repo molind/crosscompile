@@ -23,7 +23,7 @@ all:
 	mkdir -p download
 	@${MAKE} -f macOS.mk macos_arch ARCH=x86_64
 
-macos_arch: status | ${LIBDIR}/libprotobuf-lite.a
+macos_arch: status | ${LIBDIR}/libosmium.a
 
 status:
 	@printf $(call NICE_PRINT,$(ARCH)) 1>&2;

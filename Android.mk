@@ -15,7 +15,7 @@ export LD=${HOST}-ld
 export STRIP=${HOST}-strip
 
 export CPPFLAGS = -I${INCLUDEDIR}
-export CFLAGS = -fPIC -O3 
+export CFLAGS = -fPIC -O3
 export CXXFLAGS = -fPIC -O3 -std=c++17
 export LDFLAGS = -L${LIBDIR}
 
@@ -43,17 +43,3 @@ status:
 
 include download.mk
 include build_libs.mk
-
-${LIBDIR}/libssl.a: download/libressl
-	@printf $(call NICE_PRINT,$@) 1>&2;
-	cd ${LIBRESSL_DIR} && \
-	./configure --host=${HOST} --prefix=${PREFIX} --disable-shared --disable-asm && \
-	${MAKE} clean && \
-	${MAKE} -j8 install
-
-${LIBDIR}/libcurl.a: download/curl ${LIBDIR}/libssl.a ${LIBDIR}/libcares.a
-	@printf $(call NICE_PRINT,$@) 1>&2;
-	cd ${CURL_DIR} && \
-	./configure --host=${HOST} --prefix=${PREFIX} --disable-shared --with-ssl --disable-verbose --enable-ares --enable-ipv6 --enable-hidden-symbols --enable-threaded-resolver &&\
-	${MAKE} clean && \
-	${MAKE} -j8 install
